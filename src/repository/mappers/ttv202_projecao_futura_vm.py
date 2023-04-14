@@ -1,0 +1,46 @@
+from dataclasses import dataclass
+from config.sqlalchemy.base import Base
+from sqlalchemy import Column, String, Date, Integer, Double, DateTime
+
+
+@dataclass(init=False)
+class Ttv202ProjecaoFuturaVm(Base):
+    __tablename__ = 'TTV202_PROJECAO_FUTURA_VM'
+    
+    cd_projecao_futura_vm = Column(Integer, primary_key=True, name="CD_PROJECAO_FUTURA_VM")
+    vm_1 = Column(Double, name="VM_1")
+    vm_2 = Column(Double, name="VM_2")
+    vm_3 = Column(Double, name="VM_3")
+    vm_4 = Column(Double, name="VM_4")
+    vm_5 = Column(Double, name="VM_5")
+    vm_6 = Column(Double, name="VM_6")
+    vm_7 = Column(Double, name="VM_7")
+    vm_8 = Column(Double, name="VM_8")
+    vm_9 = Column(Double, name="VM_9")
+    vm_10 = Column(Double, name="VM_10")
+    vm_11 = Column(Double, name="VM_11")
+    vm_12 = Column(Double, name="VM_12")
+    vm_13 = Column(Double, name="VM_13")
+    vm_14 = Column(Double, name="VM_14")
+    vm_15 = Column(Double, name="VM_15")
+    vm_16 = Column(Double, name="VM_16")
+    vm_17 = Column(Double, name="VM_17")
+    vm_18 = Column(Double, name="VM_18")
+    vm_19 = Column(Double, name="VM_19")
+    vm_20 = Column(Double, name="VM_20")
+    vm_21 = Column(Double, name="VM_21")
+    vm_22 = Column(Double, name="VM_22")
+    vm_23 = Column(Double, name="VM_23")
+    vm_24 = Column(Double, name="VM_24")
+    vm_25 = Column(Double, name="VM_25")
+    vm_26 = Column(Double, name="VM_26")
+    vm_27 = Column(Double, name="VM_27")
+    vm_28 = Column(Double, name="VM_28")
+    vm_29 = Column(Double, name="VM_29")
+    vm_30 = Column(Double, name="VM_30")
+    vm_31 = Column(Double, name="VM_31")
+    vm_32 = Column(Double, name="VM_32")
+    vm_33 = Column(Double, name="VM_33")
+    vm_34 = Column(Double, name="VM_34")
+    vm_35 = Column(Double, name="VM_35")
+    vm_36 = Column(Double, name="VM_36")

@@ -1,0 +1,12 @@
+{
+    "database": {
+        "host": "10.17.24.2",
+        "port": "1521",
+        "service": "BPSS",
+        "isConnectionSid": false,
+        "isConnectionService": true,
+        "username": "TRADING_SODRU",
+        "password": "TRADING"
+    },
+    "testMode": false
+}
