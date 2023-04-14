@@ -1,5 +1,5 @@
-python -m venv venv_win_teste
-call venv_win_teste/Scripts/activate
+python -m venv venv_win
+call venv_win/Scripts/activate
 pip install cx-Oracle==8.3.0
 pip install oracledb==1.3.0
 pip install Pillow==9.5.0
