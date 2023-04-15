@@ -34,6 +34,8 @@ class Output:
 
 class CapturarCotacoesDDEBroadcastUsecase:
     
+    MAXIXUM_BROADCAST_ATTEMPT_VALUE = 5
+
     def __init__(self, repository: Type[Repository], logger) -> None:
         self.repository = repository
         self.logger = logger
@@ -43,6 +45,7 @@ class CapturarCotacoesDDEBroadcastUsecase:
         index = 0
         cotacoes = []
         self.dde_client_service = DdeClientService("BC")
+
         for parametro_dde in parametros_dde_broadcast:
             parametro_dde_broadcast_raw = str(parametro_dde.parametro_dde_broadcast)
             parametro_dde_broadcast_parts = parametro_dde_broadcast_raw.split(';')
@@ -53,28 +56,35 @@ class CapturarCotacoesDDEBroadcastUsecase:
             dde_topic =  dde_topic.strip()
             dde_item =  dde_item.strip()
 
-            self.logger.info(f"Conectando ao servidor de DDE: {dde_application}...")
+            self.logger.info(f"[capturar_cotacoes_dde_brodcast_usecase] Conectando ao servidor de DDE: {dde_application}...")
             
             broadcast_value = None
+            broadcast_attempt = 0
             while broadcast_value is None:
-                self.logger.info(f"Buscando valor na broadcast: Safra: {str(parametro_dde.safra)}, Mês:{str(parametro_dde.mes)} Application: {dde_application}, topic: {dde_topic}, item: {dde_item}")
-                
+                self.logger.info(f"[capturar_cotacoes_dde_brodcast_usecase] Buscando valor na broadcast: Safra: {str(parametro_dde.safra)}, Mês:{str(parametro_dde.mes)} Application: {dde_application}, topic: {dde_topic}, item: {dde_item}")
+                broadcast_attempt += 1
+
                 try:
                     broadcast_value = self.dde_client_service.get_data(
                         application=dde_application,
                         topic=dde_topic,
                         item=dde_item
                     )
-                    print(f"DDE: Application: {dde_application}, topic: {dde_topic}, item: {dde_item} >>> VALUE: {str(broadcast_value)}")
-                    
-                    broadcast_value = 0 if broadcast_value == "N/A" or broadcast_value == "" else broadcast_value
-                except:
+                    print(f"[capturar_cotacoes_dde_brodcast_usecase] DDE[attempt: {str(broadcast_attempt)}]: Application: {dde_application}, topic: {dde_topic}, item: {dde_item} >>> VALUE: {str(broadcast_value)}")
+                    broadcast_value = 0 if (type(broadcast_value)) is str else broadcast_value
+
+                except Exception as e:
                     time.sleep(1)
-                    self.logger.info(f"Broadcast retornou ({broadcast_value}) com os parametros: {dde_application}, topic: {dde_topic}, item: {dde_item}")
+                    self.logger.info(f"[capturar_cotacoes_dde_brodcast_usecase] Broadcast retornou ({broadcast_value}) com os parametros[attempt: {str(broadcast_attempt)}]: {dde_application}, topic: {dde_topic}, item: {dde_item}")
+                    print(f"[capturar_cotacoes_dde_brodcast_usecase] Broadcast retornou ({broadcast_value}) com os parametros[attempt: {str(broadcast_attempt)}]: {dde_application}, topic: {dde_topic}, item: {dde_item}")
+                    print(str(e))
                     if not Var.IS_RUNNING: 
-                        self.dde_client_service.destroy()
-                        self.logger.info("PARADA FORÇADA DURANTE A OBTENÇÃO DE DADOS DO BROADCAST")
+                        self.logger.info("[capturar_cotacoes_dde_brodcast_usecase] PARADA FORÇADA DURANTE A OBTENÇÃO DE DADOS DO BROADCAST")
                         raise Exception("PARADA FORÇADA DURANTE A OBTENÇÃO DE DADOS DO BROADCAST")
+                    if broadcast_attempt >= self.MAXIXUM_BROADCAST_ATTEMPT_VALUE:
+                        self.logger.info("[capturar_cotacoes_dde_brodcast_usecase] NUMERO MÁXIMO DE TENTATIVAS")
+                        broadcast_value = 0
+                        broadcast_attempt = 0
 
             value = 0 if broadcast_value is None else broadcast_value
 
@@ -85,7 +95,7 @@ class CapturarCotacoesDDEBroadcastUsecase:
                 param_dde=parametro_dde_broadcast_raw
             ))
             index += 1
-        self.dde_client_service.destroy()
+        
         output = Output(
             cd_grp_produto=cd_grp_produto,
             cotacoes=cotacoes

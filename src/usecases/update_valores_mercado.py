@@ -115,7 +115,8 @@ class UpdateValoresMercado:
         
         for cotacao in cotacoes_mensais_futuras:
             valor_projecao = cotacao["value"]
-            setattr(ttv202_projecao_futura_vm, f'vm_{index}', valor_projecao)
+            if is_insert or (is_update and valor_projecao > 0):
+                setattr(ttv202_projecao_futura_vm, f'vm_{index}', valor_projecao)
             index += 1
 
         while index <= self.VM_ATTRIBUTE_FINAL_INDEX:

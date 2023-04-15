@@ -84,7 +84,7 @@ class ViewAction:
             tta150_parametro = self.repository.get(Tta150Parametro)
             is_fora_do_periodo = not is_dentro_do_periodo_processamento(tta150_parametro)
             if is_fora_do_periodo:
-                self.view.update('status', f'Finalizado, forado do período de processamento: de {tta150_parametro.hora_ini} até {tta150_parametro.hora_fim}')
+                self.view.update('status', f'Finalizado, fora do período de processamento: de {tta150_parametro.hora_ini} até {tta150_parametro.hora_fim}')
                 self.logger.info("FORA DO PERIODO DE PROCESSAMENTO DE COTAÇÕES")
                 self.logger.info("FIM DO PROCESSAMENTO DE COTAÇÕES")
                 self.view.set_loading(False)
