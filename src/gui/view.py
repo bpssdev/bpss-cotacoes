@@ -200,12 +200,17 @@ class Application(Frame):
         )
         self.start_button.grid(row=0, padx=20, pady=10)
         
-
         self.stop_button = Button(bottom_frame, 
             text=" PARAR ", 
             bg="#E57373",
             command=self.action.handle_stop
         ).grid(row=0, column=1, padx=6, pady=10)
+
+        self.broadcast_test_button = Button(bottom_frame, 
+            text=" TESTE BC+ DDE ", 
+            bg="#7986CB",
+            command=self.action.handle_test_bc_dde
+        ).grid(row=0, column=2, padx=16, pady=10)
 
         self.values_dict = {
             'data_referencia': data_referencia_value,

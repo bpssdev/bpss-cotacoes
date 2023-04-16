@@ -1,38 +1,40 @@
 from repository.repo import Repository
-import datetime
-import time
-from os import path
-import re
-from threading import Thread
 from utils.var import Var
-from utils.logger import Logger
 from utils import formatter
 from repository.mappers.tta150_parametro import Tta150Parametro
 from usecases.caputurar_cotacoes_broadcast_dde.capturar_cotacoes_broadcast_dde_usecase import  CapturarCotacoesDDEBroadcastUsecase, ParametroDDEInput
 from usecases.caputurar_cotacoes_broadcast_dde.capturar_cotacoes_broadcast_dde_fake_cotacoes_teste_usecase import CapturarCotacoesDDEBroadcastFakeCotacoesTestUsecase
 from usecases.get_cotacoes_a_processar_usecase import GetCotacoesAProcessarUsecase
-#from usecases.capturar_cotacoes_broadcast_dde_usecase import CapturarCotacoesDDEBroadcastUsecase, ParametroDDEInput
-
 from usecases.update_valores_mercado import UpdateValoresMercado
 from usecases.get_cotacao_produto_dde_tmp_file_usecase import GetCotacaoProdutoDdeTmpFileUsecase
+from usecases.test_broadcast_comunication_usecase import TestBroadcastCommunicationUsecase
 from service.application_status_service import ApplicationStatusService
 from utils.file import readfile_asjson, createdir
 from gui.view_async_runner import run_async
-from tkinter import messagebox
 from utils.configuration import configuration
+from gui.bc_dde_popup_view import BCDDEPopupView 
+
+import datetime
+import time
+from os import path
+import re
+from tkinter import messagebox
 import logging
+import tkinter as tk
 
 class ViewAction:
 
     def __init__(self, view):
         self.logger = logging.getLogger(__name__)
         self.view = view
+        self.bc_dde_popup_view = BCDDEPopupView(view, self)
         self.configuration = configuration
         self.repository = Repository()
         self.application_status_service = ApplicationStatusService()
         self.get_cotacoes_usecase = GetCotacoesAProcessarUsecase(self.repository)
         self.capurar_dde_broadcast_usecase = CapturarCotacoesDDEBroadcastFakeCotacoesTestUsecase(self.repository, self.logger) if self.configuration.test_mode else CapturarCotacoesDDEBroadcastUsecase(self.repository)
         self.update_valores_mercado = UpdateValoresMercado(self.repository)
+        self.test_broadcast_comunication_usecase = TestBroadcastCommunicationUsecase()
         self.get_cotacao_produto_tmp_usecase = GetCotacaoProdutoDdeTmpFileUsecase()
         
         
@@ -206,7 +208,22 @@ class ViewAction:
             )
         
         run_async(job, self.logger)
-        
-        
+
+    def handle_test_bc_dde(self):
+       self.bc_dde_popup_view.show()
+
+    def handle_test_broadcast_comunication(self):
+        application = self.bc_dde_popup_view.getvalue('application')
+        topic = self.bc_dde_popup_view.getvalue('topic')
+        parametro = self.bc_dde_popup_view.getvalue('parametro')
+
+        output = self.test_broadcast_comunication_usecase.execute(
+            application,
+            topic,
+            parametro
+        )       
+        messagebox.showwarning(title="Resultado", message=str(output)) 
+
+
 
     
