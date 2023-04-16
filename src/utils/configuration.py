@@ -17,6 +17,9 @@ class Configuration:
         self.password = database_configuration_json['password']
         self.type_of_connection = 'SID' if database_configuration_json["isConnectionSid"] == True else 'SERVICE'
 
+        self.level_log = configuration_json["levelLog"]
         self.test_mode = configuration_json["testMode"]
+
+configuration = Configuration()
         
         

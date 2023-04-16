@@ -11,28 +11,34 @@ from utils.logger import Logger
 from typing import Type, List
 from sqlalchemy import or_, and_
 from utils.file import readfile_asjson
+import logging
 import os
 
 class UpdateValoresMercado:
 
     VM_ATTRIBUTE_FINAL_INDEX = 36
 
-    def __init__(self, repository: Type[Repository], logger: Type[Logger]) -> None:
+    def __init__(self, repository: Type[Repository]) -> None:
         self.repository = repository
-        self.logger = logger
+        self.logger = logging.getLogger(__name__)
 
     def execute(self, data_referencia: Type[datetime], cotacoes_produtos_folder_path):
         dir_notfound = not os.path.isdir(cotacoes_produtos_folder_path)
-        if dir_notfound: raise Exception(f'{cotacoes_produtos_folder_path} not found')
+        if dir_notfound: 
+            self.logger.info(f'Diretório de cotações: {cotacoes_produtos_folder_path} não encontrado')
+            raise Exception(f'{cotacoes_produtos_folder_path} not found')
 
-        self.logger.info(f"{len(os.listdir(cotacoes_produtos_folder_path))} PRODUTO ENCONTRADO")
+        self.logger.info(f"{len(os.listdir(cotacoes_produtos_folder_path))} arquivos de cotações de produtos as serem processados")
 
         for dde_cotacao_produto_file in os.listdir(cotacoes_produtos_folder_path):
+            cotacao_file_path = os.path.join(cotacoes_produtos_folder_path, dde_cotacao_produto_file)
+            self.logger.info(f"Lendo arquivo: {cotacao_file_path}...")
+
             dde_cotacao_produto_json = readfile_asjson(os.path.join(cotacoes_produtos_folder_path, dde_cotacao_produto_file))
-           
+
             # Valores mercado do mês referente
             ttv201_valor_mercado_hdr, is_update = self.__populate_ttv201_valor_mercado_hdr(data_referencia, dde_cotacao_produto_json)
-            self.logger.info(f'{"ATUALIZANDO" if is_update else "INSERINDO"} TTV201_VALOR_MERCADO_HDR: {str(ttv201_valor_mercado_hdr.__dict__)}')
+            self.logger.info(f'{"Atualizando" if is_update else "Inserindo"} TTV201_VALOR_MERCADO_HDR: {str(ttv201_valor_mercado_hdr.__dict__)}')
             if is_update: self.repository.update(ttv201_valor_mercado_hdr)
             else: self.repository.insert(ttv201_valor_mercado_hdr)
 
@@ -42,12 +48,13 @@ class UpdateValoresMercado:
                 data_referencia=data_referencia,
                 dde_cotacao_produto_json=dde_cotacao_produto_json
             )
-            self.logger.info(f'{"ATUALIZANDO" if is_update else "INSERINDO"} TTV202_PROJECAO_FUTURA_VM: {str(ttv202_projecao_futura_vm.__dict__)}')
+            self.logger.info(f'{"Atualizando" if is_update else "Inserindo"} TTV202_PROJECAO_FUTURA_VM: {str(ttv202_projecao_futura_vm.__dict__)}')
             if is_update: self.repository.update(ttv202_projecao_futura_vm)
             else: self.repository.insert(ttv202_projecao_futura_vm)
             
         
     def __populate_ttv201_valor_mercado_hdr(self, data_referencia: Type[datetime], dde_cotacao_produto_json):
+        self.logger.info(f'Populando TTV201_VALOR_MERCADO_HDR: produto: {str(dde_cotacao_produto_json["cdGrpProduto"])}, cd_parametro_superior: {str(dde_cotacao_produto_json["cdParametroSuperior"])}')
         ttv201_valor_mercado_hdr = self.repository.get(
             mapper=Ttv201ValorMercadoHdr,
             filter=(
@@ -92,6 +99,8 @@ class UpdateValoresMercado:
         return (ttv201_valor_mercado_hdr, is_update)
 
     def __popular_lista_ttv202_projecao_futura_vm(self, cd_projecao_futura_vm, data_referencia: Type[datetime], dde_cotacao_produto_json):
+        self.logger.info(f'Populando TTV202_PROJECAO_FUTURA_VM: produto: {str(dde_cotacao_produto_json["cdGrpProduto"])}, cd_parametro_superior: {str(dde_cotacao_produto_json["cdParametroSuperior"])}')
+        
         ttv202_projecao_futura_vm = self.repository.get(
             mapper=Ttv202ProjecaoFuturaVm,
             filter=(

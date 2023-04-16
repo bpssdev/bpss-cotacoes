@@ -1,19 +1,22 @@
 import win32ui
 import uuid
 import dde
- 
+import logging
+
 class DdeClientService:
 
     __DDEServer = None
 
     def __init__(self, application) -> None:
+        self.logger = logging.getLogger(__name__)
         try:
             self.application = application
-            if DdeClientService.__DDEServer is None
+            if DdeClientService.__DDEServer is None:
                 DdeClientService.__DDEServer = dde.CreateServer()
                 DdeClientService.__DDEServer.Create(f'{application}_{uuid.uuid4()}')
+                self.logger.debug('DdeClientService initialized')
         except Exception as e:
-            raise Exception(f"[dde_client_service] - Failed to find DDE Server: {application} >> " + str(e))
+            raise Exception(f"Failed to initialize DdeClientService: {application} >> " + str(e))
 
 
     def get_data(self, application, topic, item):
@@ -21,7 +24,9 @@ class DdeClientService:
             conversation = dde.CreateConversation(DdeClientService.__DDEServer)
             conversation.ConnectTo(application, topic)
             requested_data = conversation.Request(item)
+            self.logger.debug(f'data: {str(requested_data)}')
             return requested_data
         except:
-            raise Exception(f"[dde_client_service] - Failed to recover data from server {self.application}")
+            self.logger.info(f'Failed to recover data from dde server, returning None as value')
+            return None
         

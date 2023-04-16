@@ -8,5 +8,6 @@
         "username": "TRADING_SODRU",
         "password": "TRADING"
     },
+    "levelLog": "DEBUG",
     "testMode": false
 }

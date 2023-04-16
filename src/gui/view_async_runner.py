@@ -8,7 +8,6 @@ def run_async(fn, logger, onerror_fn=None):
         try:
             fn()
         except Exception as exception:
-            print(exception)
             logger.info(exception)
             if not onerror_fn is None:
                 onerror_fn(exception)

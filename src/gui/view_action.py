@@ -19,24 +19,26 @@ from service.application_status_service import ApplicationStatusService
 from utils.file import readfile_asjson, createdir
 from gui.view_async_runner import run_async
 from tkinter import messagebox
-from utils.configuration import Configuration
+from utils.configuration import configuration
+import logging
 
 class ViewAction:
 
     def __init__(self, view):
+        self.logger = logging.getLogger(__name__)
         self.view = view
-        self.configuration = Configuration()
+        self.configuration = configuration
         self.repository = Repository()
-        self.logger = Logger("log/application.log")
         self.application_status_service = ApplicationStatusService()
-        self.get_cotacoes_usecase = GetCotacoesAProcessarUsecase(self.repository, self.logger)
-        self.capurar_dde_broadcast_usecase = CapturarCotacoesDDEBroadcastFakeCotacoesTestUsecase(self.repository, self.logger) if self.configuration.test_mode else CapturarCotacoesDDEBroadcastUsecase(self.repository, self.logger)
-        self.update_valores_mercado = UpdateValoresMercado(self.repository, self.logger)
+        self.get_cotacoes_usecase = GetCotacoesAProcessarUsecase(self.repository)
+        self.capurar_dde_broadcast_usecase = CapturarCotacoesDDEBroadcastFakeCotacoesTestUsecase(self.repository, self.logger) if self.configuration.test_mode else CapturarCotacoesDDEBroadcastUsecase(self.repository)
+        self.update_valores_mercado = UpdateValoresMercado(self.repository)
         self.get_cotacao_produto_tmp_usecase = GetCotacaoProdutoDdeTmpFileUsecase()
-        createdir("tmp")
         
-
+        
     def init(self):
+        self.logger.debug('init')
+
         def job():
             self.view.set_loading(True)
             self.view.update('status', f'Carregando dados iniciais...')
@@ -47,13 +49,14 @@ class ViewAction:
             
             self.view.update('data_referencia', data_referencia.strftime("%d/%m/%Y - %H:%M:%S"))
             self.view.update('data_ultima_atualizacao', application_status.last_update.strftime("%d/%m/%Y - %H:%M:%S") if not application_status.last_update is None else '')
-            self.view.update('lista_produtos', list(map(lambda o: (o.codigo_produto, o.id), output.cotacoes_a_processar)), is_options=True)
+            self.view.update('lista_produtos', list(map(lambda o: (o.codigo_produto, o.id), output.lista_produtos_a_processar)), is_options=True)
             self.view.update('lista_produtos', 0)
             self.handle_select_produto(None)
             self.view.update('inicio_processamento', tta150_parametro.hora_ini)
             self.view.update('fim_processamento', tta150_parametro.hora_fim)
             self.view.set_loading(False)
             self.view.update('status', f'Parado')
+        
         def onerror(exception):
             self.view.set_loading(False)
             messagebox.showwarning(title="Aviso", message=str(exception))
@@ -85,32 +88,35 @@ class ViewAction:
             is_fora_do_periodo = not is_dentro_do_periodo_processamento(tta150_parametro)
             if is_fora_do_periodo:
                 self.view.update('status', f'Finalizado, fora do período de processamento: de {tta150_parametro.hora_ini} até {tta150_parametro.hora_fim}')
-                self.logger.info("FORA DO PERIODO DE PROCESSAMENTO DE COTAÇÕES")
-                self.logger.info("FIM DO PROCESSAMENTO DE COTAÇÕES")
+                self.logger.info(f'Finalizado, fora do período de processamento: de {tta150_parametro.hora_ini} até {tta150_parametro.hora_fim}')
                 self.view.set_loading(False)
                 return
             
             self.view.update('status', f'Carregando dados iniciais...')
             data_referencia = tta150_parametro.dt_vm_ultima_atualizacao
-            cotacoes_a_processar = self.get_cotacoes_usecase.execute().cotacoes_a_processar
+            lista_produtos_a_processar = self.get_cotacoes_usecase.execute().lista_produtos_a_processar
             
             while Var.IS_RUNNING:
                 is_fora_do_periodo = not is_dentro_do_periodo_processamento(tta150_parametro)
                 if is_fora_do_periodo:
+                    next_attempt_minute_amount = 5
+
                     self.view.update('status', f'Aguardando atingir o período de processamento: de {tta150_parametro.hora_ini} até {tta150_parametro.hora_fim}')
-                    self.logger.info("FORA DO PERIODO DE PROCESSAMENTO DE COTAÇÕES")
-                    self.logger.info("PROXIMA TENTATIVA EM 5 MINUTOS")
-                    time.sleep(5 * 60)
+                    self.logger.info(f'Aguardando atingir o período de processamento: de {tta150_parametro.hora_ini} até {tta150_parametro.hora_fim}')
+                    self.logger.info(f"Próxima tentativa em: {str(next_attempt_minute_amount)} minutos")
+
+                    time.sleep(next_attempt_minute_amount * 60)
                     self.view.set_loading(False)
                     continue
 
                 index = 0
-                for cotacao in cotacoes_a_processar:
-                    self.logger.info(f"BUSCANDO COTAÇÕES NO BROADCAST PRODUTO: {cotacao.codigo_produto}, PARAMETRO SUPERIOR: {cotacao.produto_captura.cd_parametro_superior}")
+                for cotacao in lista_produtos_a_processar:
+                    self.logger.info(f"Buscando cotações no Broadcast+: produto: {cotacao.codigo_produto}, parametro_superior: {cotacao.produto_captura.cd_parametro_superior}")
                     self.view.update('lista_produtos', index)
                     self.view.update('status', f'Processando {cotacao.nome_produto}...')
                     time.sleep(0.5)
                     self.view.update('status', f'Buscando cotações no broadcast: {cotacao.nome_produto}...')
+
                     cotacoes_produto = self.capurar_dde_broadcast_usecase.execute(
                         cd_grp_produto=cotacao.codigo_produto,
                         cd_parametro_superior=cotacao.produto_captura.cd_parametro_superior,
@@ -123,26 +129,26 @@ class ViewAction:
                                 safra=param.safra,
                                 valor_teste=cotacao.produto_captura.cot_teste
                             ) for param in cotacao.parametros_produto
-                        ],
-                        data_referencia=data_referencia
+                        ]
                     )
-                    self.logger.info(f"COTAÇÕES OBTIDAS NO BROADCAST PRODUTO: {cotacao.codigo_produto}, PARAMETRO SUPERIOR: {cotacao.produto_captura.cd_parametro_superior}")
+
+                    self.logger.info(f"Cotações obtidas: produto: {cotacao.codigo_produto}, parametro superior: {cotacao.produto_captura.cd_parametro_superior}")
                     self.view.update('cotacoes_por_produto_treeview', list(map(lambda cot: 
-                            (cot.year,
-                            formatter.format_month(cot.month), 
-                            cot.param_dde,
-                            cot.value), cotacoes_produto.cotacoes)))
+                        (cot.year,
+                        formatter.format_month(cot.month), 
+                        cot.param_dde,
+                        cot.value), cotacoes_produto.cotacoes)))
                     index += 1
 
                 #time.sleep(1)
                 self.view.update('status', f'Atualizando banco de dados...')
-                self.logger.info("ATUALIZANDO REGISTROS NO BANCO DE DADOS")
+                self.logger.info("Regitrando mudanças no Banco de dados")
                 self.update_valores_mercado.execute(
                     data_referencia=data_referencia,
                     cotacoes_produtos_folder_path=path.join('tmp', 'dde')
                 )
 
-                self.logger.info("REGISTROS ATUALIZADOS NO BANCO DE DADOS")
+                self.logger.info("Registros atualizados no Banco de dados")
                 application_status = self.application_status_service.get_status()
                 application_status.last_update = datetime.datetime.now()
                 self.application_status_service.update_status(application_status)
@@ -155,7 +161,7 @@ class ViewAction:
                 time.sleep(5)
 
                 
-            self.logger.info("FIM DO PROCESSAMENTO DE COTAÇÕES")
+            self.logger.info("Fim do processamento de cotações")
             self.view.set_loading(False)
             self.view.update('status', f'Finalizado')
            
@@ -164,7 +170,7 @@ class ViewAction:
             self.view.update('status', f'Finalizado')
             messagebox.showwarning(title="Aviso", message=str(exception))
 
-        self.logger.info("PROCESSANDO COTAÇÕES")
+        self.logger.info("Inicio do Processamento de contações")
         run_async(job, self.logger, onerror)
 
 
@@ -174,7 +180,7 @@ class ViewAction:
         def job():
             Var.IS_RUNNING = False
 
-        self.logger.info("SOLICITANDO PARADA DO PROCESSAMENTO DE COTAÇÕES, AGUARDE FINALIZAÇÃO")
+        self.logger.info("Solicitando parada do processamento de cotações")
         run_async(job, self.logger)
 
     def handle_select_produto(self, *args):

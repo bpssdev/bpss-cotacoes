@@ -24,7 +24,6 @@ class Repository:
                 db.session.merge(object)
                 db.session.commit()
             except Exception as e:
-                print('teste', str(e))
                 db.session.rollback()
                 raise Exception(e)
             
@@ -34,7 +33,6 @@ class Repository:
                 db.session.merge(object)
                 db.session.commit()
             except Exception as e:
-                print('teste', str(e))
                 db.session.rollback()
                 raise Exception(e)
 
