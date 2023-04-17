@@ -34,11 +34,13 @@ class Output:
 class CapturarCotacoesDDEBroadcastUsecase:
     
     MAXIXUM_number_of_attempts_VALUE = 5
+    DEFAULT_DDE_APPLICATION = "BC"
+    DEFAULT_DDE_TOPIC = "Cot"
 
     def __init__(self, repository: Type[Repository]) -> None:
         self.repository = repository
         self.logger = logging.getLogger(__name__)
-        self.dde_client_service = DdeClientService("BC")
+        
         self.logger.debug('CapturarCotacoesDDEBroadcastUsecase initialized')
         
     def execute(self, cd_grp_produto, cd_parametro_superior, cd_parametro_inferior, parametros_dde_broadcast):
@@ -48,13 +50,13 @@ class CapturarCotacoesDDEBroadcastUsecase:
         for parametro_dde in parametros_dde_broadcast:
             dde_application, dde_topic, dde_item, parametro_dde_broadcast_raw = self.__get_dde_broadcast_param(parametro_dde)
 
-            self.logger.info(f"Conectando ao servidor de DDE: {dde_application}...")
+            self.logger.info(f"Conectando ao servidor de DDE: {dde_application} ...")
 
             value = self.__get_dde_broadcast_value(
-                dde_application,
-                dde_topic,
-                dde_item, 
-                parametro_dde
+                dde_application=dde_application,
+                dde_topic=dde_topic,
+                dde_item=dde_item, 
+                parametro_dde=parametro_dde
             )
 
             cotacoes.append(Cotacao(
@@ -87,34 +89,41 @@ class CapturarCotacoesDDEBroadcastUsecase:
        
     def __get_dde_broadcast_param(self, parametro_dde):
         parametro_dde_broadcast_raw = str(parametro_dde.parametro_dde_broadcast)
-        parametro_dde_broadcast_parts = parametro_dde_broadcast_raw.split(';')
+        parametro_dde_broadcast_parts = f'{parametro_dde_broadcast_raw}'.split(';')
         is_parametro_dde_invalido = not (len(parametro_dde_broadcast_parts) == 3)
         if is_parametro_dde_invalido: raise Exception(f"Parametro dde invalido: {parametro_dde_broadcast_raw}")
         dde_application, dde_topic, dde_item = parametro_dde_broadcast_parts
 
         dde_application = dde_application.replace('=', '').strip()
-        dde_topic =  dde_topic.strip()
-        dde_item =  dde_item.strip()
+        dde_topic = dde_topic.strip()
+        dde_item = dde_item.strip()
 
-        return dde_application, dde_topic, dde_item, parametro_dde_broadcast_raw
+        return (dde_application, dde_topic, dde_item, parametro_dde_broadcast_raw)
 
     def __get_dde_broadcast_value(self, dde_application, dde_topic, dde_item, parametro_dde):
         broadcast_value = None
         number_of_attempts = 0
 
+        self.dde_client_service = DdeClientService(dde_application)
         while broadcast_value is None and number_of_attempts < self.MAXIXUM_number_of_attempts_VALUE:
-
-            self.logger.info(f"Buscando valor na broadcast+ {dde_application}({str(number_of_attempts + 1)}/{str(self.MAXIXUM_number_of_attempts_VALUE)}): Safra: {str(parametro_dde.mes)}/{str(parametro_dde.safra)} > [topic: {dde_topic}, item: {dde_item}]")
+            
+            self.logger.info(f"Buscando valor na broadcast+ {dde_application}({str(number_of_attempts + 1)}/{str(self.MAXIXUM_number_of_attempts_VALUE)}): Safra: {str(parametro_dde.mes)}/{str(parametro_dde.safra)} > [topic: '{dde_topic}', item: '{dde_item}']")
             number_of_attempts += 1
 
             broadcast_value = self.dde_client_service.get_data(
-                application=dde_application,
-                topic=dde_topic,
-                item=dde_item
+                application=f'{dde_application.strip()}',
+                topic=f'{dde_topic.strip()}',
+                item=f'{dde_item.strip()}'
             )
 
-            is_invalid_broadcast_value = (type(broadcast_value)) is str or broadcast_value is None
+            invalid_broadcast_values = ["N/D", "N/A", ""]
+            is_invalid_broadcast_value = broadcast_value is None or broadcast_value in invalid_broadcast_values
+            is_valid_broadcast_value = not is_invalid_broadcast_value and str(broadcast_value).replace(',', '').replace('.', '').isdigit()
+
             self.logger.info(f'Valor obtido da broadcast+[{"INVALID" if is_invalid_broadcast_value else "VALID"}]: {str(broadcast_value)}')
+
+            if is_valid_broadcast_value:
+                broadcast_value = float(str(broadcast_value).replace('.', '').replace(',', '.'))
             
             if is_invalid_broadcast_value:
                 time.sleep(.5)
