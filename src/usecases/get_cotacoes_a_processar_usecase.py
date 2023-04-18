@@ -13,6 +13,7 @@ class ProdutoAProcessar:
     id: str
     nome_produto: str
     codigo_produto: str
+    multiplicador_de_valor: float
     produto_captura: Type[Tta039JListaProdCaptura]
     parametros_produto: Type[List[Tta036JCodProvCotacaoMes]]
 
@@ -21,6 +22,9 @@ class Output:
     lista_produtos_a_processar: Type[List[ProdutoAProcessar]]
 
 class GetCotacoesAProcessarUsecase:
+
+    MULTIPLICADOR_DE_VALOR_DEFAULT = 1
+    MULTIPLICADOR_DE_VALOR_ESPECIAL = 0.01
 
     def __init__(self, repository: Type[Repository]) -> None:
         self.repository = repository
@@ -50,10 +54,16 @@ class GetCotacoesAProcessarUsecase:
                     Tta036JCodProvCotacaoMes.cd_grp_produto,
                     Tta036JCodProvCotacaoMes.mes)
             )
+
+            produtos_com_multiplicador_especial = [143, 287, 405]
+            multiplicador_de_valor = self.MULTIPLICADOR_DE_VALOR_ESPECIAL if int(produto_captura.cd_grp_produto) in produtos_com_multiplicador_especial \
+                else self.MULTIPLICADOR_DE_VALOR_DEFAULT
+
             lista_produtos_a_processar.append(
                 ProdutoAProcessar(
                     id=f'{produto_captura.cd_parametro_superior} - {produto_captura.produto}',
                     nome_produto=produto_captura.produto,
+                    multiplicador_de_valor=multiplicador_de_valor,
                     codigo_produto=produto_captura.cd_grp_produto,
                     produto_captura=produto_captura,
                     parametros_produto=parametros_produto,

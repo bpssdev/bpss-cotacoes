@@ -9,5 +9,5 @@
         "password": "TRADING"
     },
     "levelLog": "DEBUG",
-    "testMode": false
+    "testMode": true
 }

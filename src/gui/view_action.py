@@ -32,7 +32,7 @@ class ViewAction:
         self.repository = Repository()
         self.application_status_service = ApplicationStatusService()
         self.get_cotacoes_usecase = GetCotacoesAProcessarUsecase(self.repository)
-        self.capurar_dde_broadcast_usecase = CapturarCotacoesDDEBroadcastFakeCotacoesTestUsecase(self.repository, self.logger) if self.configuration.test_mode else CapturarCotacoesDDEBroadcastUsecase(self.repository)
+        self.capurar_dde_broadcast_usecase = CapturarCotacoesDDEBroadcastFakeCotacoesTestUsecase(self.repository) if self.configuration.test_mode else CapturarCotacoesDDEBroadcastUsecase(self.repository)
         self.update_valores_mercado = UpdateValoresMercado(self.repository)
         self.test_broadcast_comunication_usecase = TestBroadcastCommunicationUsecase()
         self.get_cotacao_produto_tmp_usecase = GetCotacaoProdutoDdeTmpFileUsecase()
@@ -123,6 +123,7 @@ class ViewAction:
                         cd_grp_produto=cotacao.codigo_produto,
                         cd_parametro_superior=cotacao.produto_captura.cd_parametro_superior,
                         cd_parametro_inferior=cotacao.produto_captura.cd_parametro_inferior,
+                        multiplicador_de_valor=cotacao.multiplicador_de_valor,
                         parametros_dde_broadcast=[
                             ParametroDDEInput(
                                 cd_grp_produto=param.cd_grp_produto,

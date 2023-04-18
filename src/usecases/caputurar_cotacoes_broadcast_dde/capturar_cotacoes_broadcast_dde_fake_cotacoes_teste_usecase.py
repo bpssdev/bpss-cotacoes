@@ -4,12 +4,11 @@ from repository.mappers.tta036_j_cod_prov_cotacao_mes import Tta036JCodProvCotac
 from repository.mappers.ttv201_valor_mercado_hdr import Ttv201ValorMercadoHdr
 from repository.mappers.tta039_j_lista_prod_captura import Tta039JListaProdCaptura
 from dataclasses import dataclass
-from utils.logger import Logger
 from typing import Type, List
 from utils.file import writefile
-import random
 from os import path
 import json
+import logging
 from datetime import datetime
 
 @dataclass
@@ -33,14 +32,11 @@ class Output:
 
 class CapturarCotacoesDDEBroadcastFakeCotacoesTestUsecase:
     
-    DDE_APPLICATION_NAME = 'BC'
-    DDE_TOPIC = 'Cot'
-
-    def __init__(self, repository: Type[Repository], logger) -> None:
+    def __init__(self, repository: Type[Repository]) -> None:
         self.repository = repository
-        self.logger = logger
+        self.logger = logging.getLogger(__name__)
 
-    def execute(self, cd_grp_produto, cd_parametro_superior, cd_parametro_inferior, data_referencia, parametros_dde_broadcast):
+    def execute(self, cd_grp_produto, cd_parametro_superior, cd_parametro_inferior, multiplicador_de_valor: float, parametros_dde_broadcast):
         cotacoes = []
         for parametro_dde_broadcast in parametros_dde_broadcast:
             cotacoes.append(
@@ -48,7 +44,7 @@ class CapturarCotacoesDDEBroadcastFakeCotacoesTestUsecase:
                     year=parametro_dde_broadcast.safra,
                     month=parametro_dde_broadcast.mes,
                     param_dde=parametro_dde_broadcast.parametro_dde_broadcast, 
-                    value=parametro_dde_broadcast.valor_teste
+                    value=parametro_dde_broadcast.valor_teste * multiplicador_de_valor
                 )
             )
 

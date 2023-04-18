@@ -34,8 +34,7 @@ class Output:
 class CapturarCotacoesDDEBroadcastUsecase:
     
     MAXIXUM_number_of_attempts_VALUE = 5
-    DEFAULT_DDE_APPLICATION = "BC"
-    DEFAULT_DDE_TOPIC = "Cot"
+
 
     def __init__(self, repository: Type[Repository]) -> None:
         self.repository = repository
@@ -43,7 +42,7 @@ class CapturarCotacoesDDEBroadcastUsecase:
         
         self.logger.debug('CapturarCotacoesDDEBroadcastUsecase initialized')
         
-    def execute(self, cd_grp_produto, cd_parametro_superior, cd_parametro_inferior, parametros_dde_broadcast):
+    def execute(self, cd_grp_produto, cd_parametro_superior, cd_parametro_inferior, multiplicador_de_valor: float, parametros_dde_broadcast: Type[List[ParametroDDEInput]]):
         index = 0
         cotacoes = []
         
@@ -58,6 +57,8 @@ class CapturarCotacoesDDEBroadcastUsecase:
                 dde_item=dde_item, 
                 parametro_dde=parametro_dde
             )
+            
+            value = value * multiplicador_de_valor
 
             cotacoes.append(Cotacao(
                 year=parametro_dde.safra,
