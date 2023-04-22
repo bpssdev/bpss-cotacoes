@@ -10,6 +10,7 @@ from os import path
 import json
 import logging
 from datetime import datetime
+import random
 
 @dataclass
 class ParametroDDEInput:
@@ -44,7 +45,7 @@ class CapturarCotacoesDDEBroadcastFakeCotacoesTestUsecase:
                     year=parametro_dde_broadcast.safra,
                     month=parametro_dde_broadcast.mes,
                     param_dde=parametro_dde_broadcast.parametro_dde_broadcast, 
-                    value=parametro_dde_broadcast.valor_teste * multiplicador_de_valor
+                    value=parametro_dde_broadcast.valor_teste * multiplicador_de_valor + (random.random() * 0.001)
                 )
             )
 

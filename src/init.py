@@ -11,7 +11,7 @@ log_file_name = 'log/' + 'application_[debug].log' if configuration.level_log ==
 log_handler = RotatingFileHandler(
     log_file_name, 
     mode='a', 
-    maxBytes=5*1024*1024, 
+    maxBytes=1024*1024*1024, 
     backupCount=2, 
     encoding=None, 
     delay=0

@@ -13,17 +13,25 @@ thread = None
 
 class Client:
 
-    __DDEServer = None
+    __DDEServerConnection = None
+    __DDEConversations = {}
 
     def request(self, application, topic, item):
         try:
-            if Client.__DDEServer is None:
-                Client.__DDEServer = dde.CreateServer()
-                Client.__DDEServer.Create(f'{application}{uuid.uuid4()}')
+            if Client.__DDEServerConnection is None:
+                print("creating server")
+                Client.__DDEServerConnection = dde.CreateServer()
+                Client.__DDEServerConnection.Create(f'{application}{uuid.uuid4()}')
             
-            conversation = dde.CreateConversation(Client.__DDEServer)
-            conversation.ConnectTo(application, topic)
-
+            conversation = Client.__DDEConversations[f'{application}_{topic}'] if f'{application}_{topic}' in Client.__DDEConversations else None
+            
+            if conversation is None or conversation.Connected() != 1:
+                print('Init conversation')
+                conversation = dde.CreateConversation(Client.__DDEServerConnection)
+                conversation.ConnectTo(application, topic)
+                Client.__DDEConversations[f'{application}_{topic}'] = conversation
+                print('is conversation connected', conversation.Connected())
+            
             requested_data = conversation.Request(item)
             return requested_data
         except Exception as e:
@@ -37,12 +45,12 @@ cli = Client()
 aux = 0
 
 try:
-    while aux < 10:
+    while True:
         print('[cli] requensting data...')
         # time.sleep(1)
         data = cli.request('BC', "Cot", "ABC")
         print(f'[cli] {str(data)}')
-        # time.sleep(1)
+        time.sleep(0.5)
         aux += 1
 except Exception as e:
     print(f'[cli] outside error: {str(e)}')
